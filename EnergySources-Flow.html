@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClaritySetu | Thermal Physics Mastery</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --bg: #0f172a; 
+            --card: #1e293b; 
+            --text: #f1f5f9; 
+            --subtext: #94a3b8; 
+            --option-bg: #334155; 
+            --option-border: #475569; 
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 220px; /* Two-column palette layout */
+            gap: 2rem;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* --- Header Styling --- */
+        .quiz-header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .quiz-header h1 { color: var(--primary); margin: 0; font-size: 2.4rem; }
+        .quiz-header p { color: var(--subtext); margin: 0.5rem 0; font-size: 1.1rem; }
+
+        /* --- Quiz Content Styling --- */
+        .quiz-area { min-width: 0; }
+        .question-card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            min-height: 400px;
+        }
+
+        .question-text { font-size: 1.5rem; font-weight: 600; margin-bottom: 2rem; line-height: 1.4; }
+        .options-list { display: grid; gap: 1rem; list-style: none; padding: 0; }
+
+        .option-btn {
+            background: var(--option-bg);
+            border: 1px solid var(--option-border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: left;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            color: var(--text);
+            transition: 0.2s;
+        }
+
+        .option-btn:hover:not(:disabled) { border-color: var(--primary); background: #3d4d61; }
+        .option-btn.correct { background: rgba(34, 197, 94, 0.2); border-color: var(--success); color: #4ade80; }
+        .option-btn.wrong { background: rgba(239, 68, 68, 0.2); border-color: var(--error); color: #f87171; }
+
+        .rationale {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 12px;
+            display: none;
+            background: rgba(15, 23, 42, 0.5);
+            border-left: 5px solid var(--primary);
+            font-size: 1rem;
+        }
+        .rationale.visible { display: block; animation: fadeIn 0.3s ease; }
+
+        .controls { display: flex; justify-content: space-between; margin-top: 2rem; gap: 1rem; }
+        .nav-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            flex: 1;
+            transition: 0.2s;
+        }
+        .nav-btn:hover { opacity: 0.9; }
+        .flag-btn { background: #334155; border: 2px solid var(--warning); color: var(--warning); }
+
+        /* --- Palette Styling --- */
+        .palette-sidebar {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 1.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border: 1px solid var(--option-border);
+        }
+
+        .brand-label {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        .palette-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Two columns as requested */
+            gap: 10px;
+        }
+
+        .palette-btn {
+            padding: 12px 0;
+            border-radius: 8px;
+            border: 1px solid var(--option-border);
+            background: var(--option-bg);
+            color: var(--text);
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .palette-btn.current { border: 2px solid var(--primary); background: #3d4d61; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        .palette-btn.answered { background: var(--success); border-color: var(--success); color: white; }
+        .palette-btn.flagged { border-color: var(--warning); color: var(--warning); }
+        .palette-btn.flagged::after { content: ' 🚩'; font-size: 10px; }
+
+        #result-screen { text-align: center; display: none; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; }
+            .palette-sidebar { position: static; order: 2; }
+            .palette-grid { grid-template-columns: repeat(5, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-layout">
+    <div class="quiz-header">
+        <h1>Thermal Physics</h1>
+        <p>Topic: Energy: Flow, Sources and Global Warming | Selina Physics</p>
+    </div>
+
+    <div class="quiz-area">
+        <div id="quiz-app">
+            <div class="question-card">
+                <div class="question-text" id="question">Loading Question...</div>
+                <div class="options-list" id="options"></div>
+                <div id="rationale" class="rationale"></div>
+            </div>
+
+            <div class="controls">
+                <button class="nav-btn" onclick="changeQuestion(-1)">← Previous</button>
+                <button class="nav-btn flag-btn" onclick="toggleFlag()">Flag Question</button>
+                <button class="nav-btn" id="nextBtn" onclick="changeQuestion(1)">Next →</button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="question-card">
+            <h2>Evaluation Summary</h2>
+            <h1 id="final-score" style="font-size: 5rem; color: var(--success); margin: 1rem 0;">0/20</h1>
+            <p id="feedback" style="color: var(--subtext); margin-bottom: 2rem;"></p>
+            <button class="nav-btn" style="max-width: 200px;" onclick="location.reload()">Restart Quiz</button>
+        </div>
+    </div>
+
+    <aside class="palette-sidebar">
+        <span class="brand-label">ClaritySetu</span>
+        <div class="palette-grid" id="palette-grid"></div>
+        
+        <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--option-border);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.8rem;">
+                <div style="width: 12px; height: 12px; background: var(--success); border-radius: 3px;"></div> Answered
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 0.8rem;">
+                <div style="width: 12px; height: 12px; border: 1px solid var(--warning); border-radius: 3px;"></div> Flagged
+            </div>
+        </div>
+    </aside>
+</div>
+
+<script>
+    const questions = [
+        {
+            q: "What is the primary source of energy for all ecosystems on Earth?",
+            options: [
+                { t: "The Sun", r: "The sun is the most significant source of energy for all ecosystems [Selina Physics, Page 124].", c: true },
+                { t: "Nuclear Energy", r: "Nuclear energy is used in reactors but does not drive biological food chains [Selina Physics, Page 133].", c: false },
+                { t: "Tidal Energy", r: "Tidal energy comes from ocean water rise and fall, not primary ecosystem flow [Selina Physics, Page 128].", c: false },
+                { t: "Fossil Fuels", r: "Fossil fuels are stored chemical energy, not the primary driver [Selina Physics, Page 130].", c: false }
+            ]
+        },
+        {
+            q: "According to the Second Law of Thermodynamics, energy transfer in an ecosystem is:",
+            options: [
+                { t: "100% Efficient", r: "No energy transfer is 100% efficient due to degradation [Selina Physics, Page 126].", c: false },
+                { t: "Never 100% Efficient", r: "A portion of energy is always converted into unuseful forms like heat [Selina Physics, Page 126].", c: true },
+                { t: "Cyclic", r: "Energy flow in an ecosystem is linear, not cyclic [Selina Physics, Page 126].", c: false },
+                { t: "Always Increasing", r: "Energy degrades and decreases as it move through trophic levels [Selina Physics, Page 134].", c: false }
+            ]
+        },
+        {
+            q: "What percentage of incident solar energy is absorbed by Earth's atmosphere?",
+            options: [
+                { t: "8%", r: "This represents the solar energy that falls on plants [Selina Physics, Page 124].", c: false },
+                { t: "10%", r: "This amount is utilized in heating water and land [Selina Physics, Page 124].", c: false },
+                { t: "56-60%", r: "Nearly 56-60% of incident energy is absorbed by the atmosphere [Selina Physics, Page 124].", c: true },
+                { t: "0.02%", r: "Plants use only 0.02% for photosynthesis [Selina Physics, Page 124].", c: false }
+            ]
+        },
+        {
+            q: "In a food chain, photosynthetic plants are categorized as:",
+            options: [
+                { t: "Consumers", r: "Consumers utilize food synthesized by producers [Selina Physics, Page 124].", c: false },
+                { t: "Decomposers", r: "These break down waste but are not primary producers [Selina Physics, Page 124].", c: false },
+                { t: "Producers", r: "Plants synthesize organic substances and are called producers [Selina Physics, Page 124].", c: true },
+                { t: "Deuteriants", r: "This is not a biological term used in the text [Selina Physics, Page 124].", c: false }
+            ]
+        },
+        {
+            q: "The average solar energy reaching the upper atmosphere per square meter is known as the:",
+            options: [
+                { t: "Solar Constant", r: "The average energy reaching the upper atmosphere (1.34 kW/m²) is the solar constant [Selina Physics, Page 127].", c: true },
+                { t: "LPG Constant", r: "LPG refers to liquefied petroleum gas [Selina Physics, Page 130].", c: false },
+                { t: "Thermal Gradient", r: "This refers to temperature differences in ocean depths [Selina Physics, Page 128].", c: false },
+                { t: "Fission Constant", r: "This is not a term used in the text [Selina Physics, Page 129].", c: false }
+            ]
+        },
+        {
+            q: "Which of these is classified as a non-renewable source of energy?",
+            options: [
+                { t: "Wind", r: "Wind is a renewable source derived from solar energy [Selina Physics, Page 127].", c: false },
+                { t: "Tides", r: "Tidal energy is renewable [Selina Physics, Page 127].", c: false },
+                { t: "Coal", r: "Coal is a fossil fuel that cannot be quickly replaced [Selina Physics, Page 129].", c: true },
+                { t: "Biomass", r: "Biomass is generally considered a renewable source [Selina Physics, Page 127].", c: false }
+            ]
+        },
+        {
+            q: "Solar cells are primarily manufactured from which material?",
+            options: [
+                { t: "Copper", r: "Copper is a conductor, not a semiconductor [Selina Physics, Page 131].", c: false },
+                { t: "Silicon", r: "Solar cells are usually made from semiconductors like silicon [Selina Physics, Page 131].", c: true },
+                { t: "Iron", r: "Iron is used as a generic example of a substance that expands [Selina Physics, Page 123].", c: false },
+                { t: "Cadmium", r: "Cadmium rods are used to control nuclear reactions [Selina Physics, Page 129].", c: false }
+            ]
+        },
+        {
+            q: "What is the primary flammable component (65%) of biogas?",
+            options: [
+                { t: "Hydrogen", r: "Hydrogen is part of the mixture but not the main part [Selina Physics, Page 128].", c: false },
+                { t: "Methane", r: "Methane (65%) is the main constituent of biogas [Selina Physics, Page 128].", c: true },
+                { t: "Oxygen", r: "Biogas is formed in the absence of oxygen [Selina Physics, Page 128].", c: false },
+                { t: "Butane", r: "Butane is the main part of LPG [Selina Physics, Page 130].", c: false }
+            ]
+        },
+        {
+            q: "Ethyl mercaptan is added to LPG gas cylinders specifically to:",
+            options: [
+                { t: "Improve Combustion", r: "Combustion is managed by the fuel type [Selina Physics, Page 130].", c: false },
+                { t: "Prevent Freezing", r: "This is not the purpose of the additive [Selina Physics, Page 130].", c: false },
+                { t: "Help detect leakages", r: "Its strong smell allows gas leakages to be detected easily [Selina Physics, Page 130].", c: true },
+                { t: "Increase Gas Pressure", r: "Pressure is managed by compression [Selina Physics, Page 130].", c: false }
+            ]
+        },
+        {
+            q: "Einstein's mass-energy equivalence ($E=mc²$) explains the energy source of:",
+            options: [
+                { t: "Hydroelectric Power", r: "This comes from water's potential/kinetic energy [Selina Physics, Page 132].", c: false },
+                { t: "Wind Power", r: "This is mechanical kinetic energy [Selina Physics, Page 132].", c: false },
+                { t: "Nuclear Power", r: "Energy is released due to loss in mass during fission or fusion [Selina Physics, Page 129].", c: true },
+                { t: "Solar Thermal Power", r: "This uses reflected heat from reflectors [Selina Physics, Page 132].", c: false }
+            ]
+        },
+        {
+            q: "The conversion of energy into unuseful forms like heat is known as:",
+            options: [
+                { t: "Energy Degradation", r: "Gradual decrease of useful energy is called energy degradation [Selina Physics, Page 134].", c: true },
+                { t: "Energy Generation", r: "This is the production of useful energy [Selina Physics, Page 134].", c: false },
+                { t: "Mass Equivalence", r: "This relates to mass-to-energy conversion [Selina Physics, Page 129].", c: false },
+                { t: "Respiration", r: "This is a biological use of energy [Selina Physics, Page 125].", c: false }
+            ]
+        },
+        {
+            q: "Who is credited with discovering the Greenhouse Effect in 1824?",
+            options: [
+                { t: "Isaac Newton", r: "Newton is not associated with this discovery.", c: false },
+                { t: "Joseph Fourier", r: "Joseph Fourier discovered the greenhouse effect in 1824 [Selina Physics, Page 135].", c: true },
+                { t: "T.C. Hope", r: "Hope devised an apparatus for water experiments [Selina Physics, Page 122].", c: false },
+                { t: "Thomas Edison", r: "Edison is not mentioned in the text for this discovery.", c: false }
+            ]
+        },
+        {
+            q: "Greenhouse gases are effective absorbers of which type of radiation?",
+            options: [
+                { t: "Visible Light", r: "Atmosphere is transparent to visible light [Selina Physics, Page 136].", c: false },
+                { t: "X-Rays", r: "These are absorbed higher up by the ozone layer [Selina Physics, Page 136].", c: false },
+                { t: "Long Wavelength Infrared", r: "Greenhouse gases trap long wavelength infrared radiations [Selina Physics, Page 136].", c: true },
+                { t: "Ultraviolet Rays", r: "UV rays are absorbed by the ozone layer [Selina Physics, Page 136].", c: false }
+            ]
+        },
+        {
+            q: "In the absence of greenhouse gases, Earth's average temperature would be:",
+            options: [
+                { t: "15.5 °C", r: "This is the current average temperature [Selina Physics, Page 136].", c: false },
+                { t: "0 °C", r: "This is the freezing point of water.", c: false },
+                { t: "-18 °C", r: "Earth would reach -18 °C without heat-trapping gases [Selina Physics, Page 136].", c: true },
+                { t: "64 °C", r: "This is the projected temperature for 2100 [Selina Physics, Page 136].", c: false }
+            ]
+        },
+        {
+            q: "Which human activity accounts for a 60% increase in the greenhouse effect?",
+            options: [
+                { t: "Industrial CO₂ production", r: "Carbon dioxide increase from human activity is responsible for 60% increase [Selina Physics, Page 136].", c: true },
+                { t: "Nuclear Power usage", r: "Nuclear power does not produce greenhouse gases [Selina Physics, Page 134].", c: false },
+                { t: "Tidal Dam construction", r: "This is a clean energy source [Selina Physics, Page 133].", c: false },
+                { t: "Solar panel production", r: "Solar energy is pollution-free [Selina Physics, Page 132].", c: false }
+            ]
+        },
+        {
+            q: "What is an economic measure listed to check global warming?",
+            options: [
+                { t: "Carbon Tax", r: "Industries paying carbon tax is an economic measure [Selina Physics, Page 139].", c: true },
+                { t: "Family Planning", r: "This is a policy measure [Selina Physics, Page 139].", c: false },
+                { t: "Bio-char Stoves", r: "This is a technological measure [Selina Physics, Page 138].", c: false },
+                { t: "Empowerment of Women", r: "This is a policy measure [Selina Physics, Page 139].", c: false }
+            ]
+        },
+        {
+            q: "Ocean Thermal Energy (OTE) relies on a temperature difference of up to:",
+            options: [
+                { t: "5 °C", r: "This is too small for efficient OTE conversion [Selina Physics, Page 128].", c: false },
+                { t: "20 °C", r: "OTE is based on a difference of up to 20 °C between surface and deep water [Selina Physics, Page 128].", c: true },
+                { t: "50 °C", r: "Surface water does not reach temperatures high enough for this difference [Selina Physics, Page 128].", c: false },
+                { t: "100 °C", r: "This is the difference between freezing and boiling points.", c: false }
+            ]
+        },
+        {
+            q: "The device converting solar energy directly into electricity is the:",
+            options: [
+                { t: "Solar Cell", r: "A solar cell converts solar energy directly into electricity [Selina Physics, Page 131].", c: true },
+                { t: "Steam Turbine", r: "This is used in solar power plants to drive a generator [Selina Physics, Page 132].", c: false },
+                { t: "Armature", r: "This is a part of a generator rotated in a magnetic field [Selina Physics, Page 132].", c: false },
+                { t: "Concave Reflector", r: "This concentrates rays to boil water [Selina Physics, Page 132].", c: false }
+            ]
+        },
+        {
+            q: "Nations at COP21 committed to zero carbon emissions between which years?",
+            options: [
+                { t: "2015 to 2025", r: "This was immediately after the conference year.", c: false },
+                { t: "2030 to 2050", r: "The goal is zero carbon emission between 2030 and 2050 [Selina Physics, Page 139].", c: true },
+                { t: "2050 to 2100", r: "2100 is the target for limiting total warming [Selina Physics, Page 139].", c: false },
+                { t: "By the year 3000", r: "This is too far in the future.", c: false }
+            ]
+        },
+        {
+            q: "Energy flow in an ecosystem is linear and govern by thermodynamics laws [Selina Physics, Page 126]:",
+            options: [
+                { t: "True", r: "Energy moves in a fixed direction and does not return to the sun [Selina Physics, Page 125, 126].", c: true },
+                { t: "False", r: "Energy flow is linear and moves towards a degraded state [Selina Physics, Page 126].", c: false }
+            ]
+        }
+    ];
+
+    let currentIdx = 0;
+    let answers = new Array(questions.length).fill(null);
+    let flagged = new Array(questions.length).fill(false);
+    let score = 0;
+
+    function initPalette() {
+        const grid = document.getElementById('palette-grid');
+        grid.innerHTML = '';
+        for (let i = 0; i < questions.length; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'palette-btn';
+            btn.innerText = i + 1;
+            btn.id = `palette-btn-${i}`;
+            btn.onclick = () => { currentIdx = i; render(); };
+            grid.appendChild(btn);
+        }
+    }
+
+    function render() {
+        const q = questions[currentIdx];
+        document.getElementById('question').innerText = q.q;
+        
+        const optionsContainer = document.getElementById('options');
+        optionsContainer.innerHTML = '';
+        const rationaleBox = document.getElementById('rationale');
+        rationaleBox.className = 'rationale';
+
+        q.options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt.t;
+            
+            if (answers[currentIdx] !== null) {
+                btn.disabled = true;
+                if (opt.c) btn.classList.add('correct');
+                if (answers[currentIdx] === i && !opt.c) btn.classList.add('wrong');
+                if (answers[currentIdx] === i) {
+                    rationaleBox.innerText = opt.r;
+                    rationaleBox.classList.add('visible');
+                }
+            } else {
+                btn.onclick = () => selectOption(i);
+            }
+            optionsContainer.appendChild(btn);
+        });
+
+        document.getElementById('nextBtn').innerText = currentIdx === questions.length - 1 ? 'Finish Test' : 'Next →';
+        updatePalette();
+    }
+
+    function selectOption(idx) {
+        answers[currentIdx] = idx;
+        if (questions[currentIdx].options[idx].c) score++;
+        render();
+    }
+
+    function toggleFlag() {
+        flagged[currentIdx] = !flagged[currentIdx];
+        updatePalette();
+    }
+
+    function updatePalette() {
+        for (let i = 0; i < questions.length; i++) {
+            const btn = document.getElementById(`palette-btn-${i}`);
+            btn.className = 'palette-btn';
+            if (i === currentIdx) btn.classList.add('current');
+            if (answers[i] !== null) btn.classList.add('answered');
+            if (flagged[i]) btn.classList.add('flagged');
+        }
+    }
+
+    function changeQuestion(step) {
+        if (step === 1 && currentIdx === questions.length - 1) {
+            showResults();
+            return;
+        }
+        currentIdx = (currentIdx + step + questions.length) % questions.length;
+        render();
+    }
+
+    function showResults() {
+        document.getElementById('quiz-app').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        document.getElementById('final-score').innerText = `${score}/20`;
+        
+        const feedback = document.getElementById('feedback');
+        if (score === 20) feedback.innerText = "Exceptional! You have a perfect understanding of Selina Physics.";
+        else if (score >= 15) feedback.innerText = "Excellent performance! You've mastered most core concepts.";
+        else if (score >= 10) feedback.innerText = "Good effort. Consider reviewing the sections on global warming and renewable energy.";
+        else feedback.innerText = "Study recommendation: Focus on Energy Degradation and Thermodynamic Laws in Ecosystems.";
+    }
+
+    initPalette();
+    render();
+</script>
+</body>
+</html>
