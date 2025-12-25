@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClaritySetu | Nuclear Energy Mastery</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --success: #22c55e;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --bg: #0f172a; 
+            --card: #1e293b; 
+            --text: #f1f5f9; 
+            --subtext: #94a3b8; 
+            --option-bg: #334155; 
+            --option-border: #475569; 
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 220px;
+            gap: 2rem;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .quiz-header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .quiz-header h1 { color: var(--primary); margin: 0; font-size: 2.4rem; }
+        .quiz-header p { color: var(--subtext); margin: 0.5rem 0; font-size: 1.1rem; }
+
+        .quiz-area { min-width: 0; }
+        .question-card {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+            min-height: 400px;
+        }
+
+        .question-text { font-size: 1.5rem; font-weight: 600; margin-bottom: 2rem; line-height: 1.4; }
+        .options-list { display: grid; gap: 1rem; list-style: none; padding: 0; }
+
+        .option-btn {
+            background: var(--option-bg);
+            border: 1px solid var(--option-border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: left;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            color: var(--text);
+            transition: 0.2s;
+        }
+
+        .option-btn:hover:not(:disabled) { border-color: var(--primary); background: #3d4d61; }
+        .option-btn.correct { background: rgba(34, 197, 94, 0.2); border-color: var(--success); color: #4ade80; }
+        .option-btn.wrong { background: rgba(239, 68, 68, 0.2); border-color: var(--error); color: #f87171; }
+
+        .rationale {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 12px;
+            display: none;
+            background: rgba(15, 23, 42, 0.5);
+            border-left: 5px solid var(--primary);
+            font-size: 1rem;
+        }
+        .rationale.visible { display: block; animation: fadeIn 0.3s ease; }
+
+        .controls { display: flex; justify-content: space-between; margin-top: 2rem; gap: 1rem; }
+        .nav-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            flex: 1;
+            transition: 0.2s;
+        }
+        .nav-btn:hover { opacity: 0.9; }
+        .flag-btn { background: #334155; border: 2px solid var(--warning); color: var(--warning); }
+
+        .palette-sidebar {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 1.5rem;
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            border: 1px solid var(--option-border);
+        }
+
+        .brand-label { font-size: 1.4rem; font-weight: 900; color: var(--primary); text-align: center; margin-bottom: 1.5rem; display: block; }
+        .palette-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+        .palette-btn {
+            padding: 12px 0;
+            border-radius: 8px;
+            border: 1px solid var(--option-border);
+            background: var(--option-bg);
+            color: var(--text);
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .palette-btn.current { border: 2px solid var(--primary); background: #3d4d61; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        .palette-btn.answered { background: var(--success); border-color: var(--success); color: white; }
+        .palette-btn.flagged { border-color: var(--warning); color: var(--warning); }
+        .palette-btn.flagged::after { content: ' 🚩'; font-size: 10px; }
+
+        #result-screen { text-align: center; display: none; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; }
+            .palette-sidebar { position: static; order: 2; }
+            .palette-grid { grid-template-columns: repeat(5, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-layout">
+    <div class="quiz-header">
+        <h1>Thermal Physics</h1>
+        <p>Topic: Nuclear Energy | Selina Physics</p>
+    </div>
+
+    <div class="quiz-area">
+        <div id="quiz-app">
+            <div class="question-card">
+                <div class="question-text" id="question">Loading...</div>
+                <div class="options-list" id="options"></div>
+                <div id="rationale" class="rationale"></div>
+            </div>
+
+            <div class="controls">
+                <button class="nav-btn" onclick="changeQuestion(-1)">← Previous</button>
+                <button class="nav-btn flag-btn" onclick="toggleFlag()">Flag Question</button>
+                <button class="nav-btn" id="nextBtn" onclick="changeQuestion(1)">Next →</button>
+            </div>
+        </div>
+
+        <div id="result-screen" class="question-card">
+            <h2>Result Summary</h2>
+            <h1 id="final-score" style="font-size: 5rem; color: var(--success); margin: 1rem 0;">0/20</h1>
+            <p id="feedback" style="color: var(--subtext); margin-bottom: 2rem;"></p>
+            <button class="nav-btn" style="max-width: 200px;" onclick="location.reload()">Restart Quiz</button>
+        </div>
+    </div>
+
+    <aside class="palette-sidebar">
+        <span class="brand-label">ClaritySetu</span>
+        <div class="palette-grid" id="palette-grid"></div>
+        <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--option-border);">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.8rem;">
+                <div style="width: 12px; height: 12px; background: var(--success); border-radius: 3px;"></div> Answered
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 0.8rem;">
+                <div style="width: 12px; height: 12px; border: 1px solid var(--warning); border-radius: 3px;"></div> Flagged
+            </div>
+        </div>
+    </aside>
+</div>
+
+<script>
+    const questions = [
+        {
+            q: "Electricity is produced from nuclear energy using which controlled process?",
+            options: [
+                { t: "Nuclear Fusion", r: "Nuclear fusion cannot yet be used to harness energy on a large scale [Selina Physics, Page 129].", c: false },
+                { t: "Nuclear Fission", r: "Nuclear energy is obtained by the controlled chain reaction of nuclear fission [Selina Physics, Page 133].", c: true },
+                { t: "Radioactive Decay", r: "Energy in a power plant is obtained via fission, not natural decay [Selina Physics, Page 133].", c: false },
+                { t: "Chemical Oxidation", r: "This is used for fossil fuels, not nuclear fuel [Selina Physics, Page 119].", c: false }
+            ]
+        },
+        {
+            q: "Which specific isotopes are used as fuel in a nuclear reactor?",
+            options: [
+                { t: "Uranium-238", r: "Uranium-235 is the isotope used for fission [Selina Physics, Page 133].", c: false },
+                { t: "Uranium-235 or Plutonium-239", r: "Controlled nuclear fission of Uranium-235 or Plutonium-239 produces electricity [Selina Physics, Page 133].", c: true },
+                { t: "Heavy Water", r: "Heavy water is used inside the reactor, but it is not the fuel [Selina Physics, Page 133].", c: false },
+                { t: "Cadmium-113", r: "Cadmium is used in rods to control the reaction, not as fuel [Selina Physics, Page 133].", c: false }
+            ]
+        },
+        {
+            q: "The main part of a nuclear power plant where fission takes place is called the:",
+            options: [
+                { t: "Heat Exchanger", r: "The heat exchanger converts water to steam using heat from the coolant [Selina Physics, Page 133].", c: false },
+                { t: "Nuclear Reactor", r: "The nuclear reactor is the main part of the plant where the chain reaction is controlled [Selina Physics, Page 133].", c: true },
+                { t: "Turbine", r: "The turbine is rotated by steam to drive the generator [Selina Physics, Page 133].", c: false },
+                { t: "Graphite Block", r: "This is a component inside the reactor, not the whole unit [Selina Physics, Page 133].", c: false }
+            ]
+        },
+        {
+            q: "What is used to control the chain reaction of nuclear fission in a reactor?",
+            options: [
+                { t: "Graphite Blocks", r: "Graphite acts as a moderator, not the primary controller of neutrons [Selina Physics, Page 133].", c: false },
+                { t: "Cadmium Rods", r: "Cadmium rods are used to control the chain reaction by absorbing neutrons [Selina Physics, Page 133].", c: true },
+                { t: "Turbine Shaft", r: "This connects the turbine to the generator [Selina Physics, Page 133].", c: false },
+                { t: "Coolant Pump", r: "This circulates the gas or liquid that absorbs heat [Selina Physics, Page 133].", c: false }
+            ]
+        },
+        {
+            q: "How is heat energy released in the reactor transferred to the water in the heat exchanger?",
+            options: [
+                { t: "By direct contact", r: "The coolant circulates in a closed loop to the heat exchanger [Selina Physics, Page 133].", c: false },
+                { t: "Through a Coolant", r: "Heat released is absorbed by a coolant which passes through coils in a heat exchanger [Selina Physics, Page 133].", c: true },
+                { t: "By Radiation", r: "Heat is transferred primarily via the coolant circulation [Selina Physics, Page 133].", c: false },
+                { t: "Through Graphite", r: "Graphite is a structural component within the reactor [Selina Physics, Page 133].", c: false }
+            ]
+        },
+        {
+            q: "In a nuclear power plant, what is used to rotate the armature of the generator?",
+            options: [
+                { t: "Uranium Rods", r: "Rods stay inside the reactor [Selina Physics, Page 133].", c: false },
+                { t: "Cadmium Rods", r: "These are used for control only [Selina Physics, Page 133].", c: false },
+                { t: "A Steam Turbine", r: "Steam is used to rotate the turbine which in turn rotates the generator [Selina Physics, Page 133].", c: true },
+                { t: "The Coolant Pump", r: "The pump moves the coolant, not the generator [Selina Physics, Page 133].", c: false }
+            ]
+        },
+        {
+            q: "What percentage of India's total electrical power is currently obtained from nuclear plants?",
+            options: [
+                { t: "23%", r: "This is the percentage for hydro-electricity in India [Selina Physics, Page 133].", c: false },
+                { t: "3%", r: "Only about 3% of India's total electrical power is from nuclear plants [Selina Physics, Page 134].", c: true },
+                { t: "30%", r: "This is a target for future solar efficiency [Selina Physics, Page 131].", c: false },
+                { t: "60%", r: "This refers to CO2's contribution to global warming [Selina Physics, Page 136].", c: false }
+            ]
+        },
+        {
+            q: "Which of the following is a location of a nuclear power plant in India?",
+            options: [
+                { t: "Jaisalmer", r: "Jaisalmer has natural gas fields [Selina Physics, Page 130].", c: false },
+                { t: "Tarapur in Maharashtra", r: "India has a nuclear plant at Tarapur in Maharashtra [Selina Physics, Page 134].", c: true },
+                { t: "Assam", r: "Assam has petroleum reservoirs [Selina Physics, Page 130].", c: false },
+                { t: "Jharkhand", r: "Jharkhand is known for coal mines [Selina Physics, Page 130].", c: false }
+            ]
+        },
+        {
+            q: "The nuclear power plant at Narora is located in which Indian state?",
+            options: [
+                { t: "Rajasthan", r: "The Rana Pratap Sagar plant is in Rajasthan [Selina Physics, Page 134].", c: false },
+                { t: "Tamil Nadu", r: "The Kalpakkam plant is in Tamil Nadu [Selina Physics, Page 134].", c: false },
+                { t: "Uttar Pradesh", r: "The Narora plant is located in Uttar Pradesh [Selina Physics, Page 134].", c: true },
+                { t: "Maharashtra", r: "The Tarapur plant is in Maharashtra [Selina Physics, Page 134].", c: false }
+            ]
+        },
+        {
+            q: "What is a major advantage of using nuclear energy for electricity?",
+            options: [
+                { t: "It produces no waste", r: "Nuclear plants produce harmful radioactive waste [Selina Physics, Page 134].", c: false },
+                { t: "A small amount of fuel produces a tremendous amount of energy", r: "One uranium nucleus releases nearly 200 MeV [Selina Physics, Page 129, 134].", c: true },
+                { t: "It is a clean source", r: "It is not clean due to harmful radiations and waste issues [Selina Physics, Page 134].", c: false },
+                { t: "It is easy to set up anywhere", r: "It requires specialized equipment and safety standards [Selina Physics, Page 134].", c: false }
+            ]
+        },
+        {
+            q: "Once loaded, nuclear fuel releases energy over how long a period?",
+            options: [
+                { t: "Few days", r: "It lasts much longer than fossil fuel cycles [Selina Physics, Page 134].", c: false },
+                { t: "A long period", r: "Nuclear fuel continues to release energy over a long period once loaded [Selina Physics, Page 134].", c: true },
+                { t: "One month", r: "The cycle is longer than a single month [Selina Physics, Page 134].", c: false },
+                { t: "Infinite time", r: "The fuel eventually exhausts [Selina Physics, Page 129].", c: false }
+            ]
+        },
+        {
+            q: "Why is nuclear energy NOT considered a 'clean' source in the text?",
+            options: [
+                { t: "It produces smoke", r: "Nuclear plants do not produce smoke like coal [Selina Physics, Page 134].", c: false },
+                { t: "It emits harmful radiations", r: "Nuclear radiations cause ionisation and are harmful to the body [Selina Physics, Page 134].", c: true },
+                { t: "It is very loud", r: "Noise is not the primary environmental concern [Selina Physics, Page 134].", c: false },
+                { t: "It causes acid rain", r: "This is a characteristic of fossil fuels [Selina Physics, Page 134].", c: false }
+            ]
+        },
+        {
+            q: "What safety feature is required around a nuclear reactor to protect the environment?",
+            options: [
+                { t: "Thin metal sheets", r: "Radiations are highly penetrating and need more [Selina Physics, Page 134].", c: false },
+                { t: "Concrete walls", r: "The reactor is enclosed in concrete walls as shown in Fig 6.12 [Selina Physics, Page 133].", c: true },
+                { t: "Plastic cladding", r: "Plastic cannot stop high-energy radiations [Selina Physics, Page 134].", c: false },
+                { t: "Wooden shields", r: "Wood is insufficient for shielding radiations [Selina Physics, Page 134].", c: false }
+            ]
+        },
+        {
+            q: "The waste from nuclear power plants causes what type of environmental issue?",
+            options: [
+                { t: "Global Warming", r: "CO2 is the primary cause of global warming [Selina Physics, Page 136].", c: false },
+                { t: "High degree of pollution", r: "Nuclear waste causes a high degree of environmental pollution [Selina Physics, Page 134].", c: true },
+                { t: "Acidification of oceans", r: "This is caused by CO2 absorption [Selina Physics, Page 138].", c: false },
+                { t: "Ozone depletion", r: "CFCs are primarily responsible for this [Selina Physics, Page 136].", c: false }
+            ]
+        },
+        {
+            q: "According to Fig 6.12, what is used as a moderator/structural part in the reactor?",
+            options: [
+                { t: "Graphite Block", r: "A graphite block is part of the nuclear reactor core [Selina Physics, Page 133].", c: true },
+                { t: "Cadmium Rod", r: "Rods are used for control, not as the main block [Selina Physics, Page 133].", c: false },
+                { t: "Uranium Rod", r: "These are the fuel sources [Selina Physics, Page 133].", c: false },
+                { t: "Coolant Pump", r: "This is located outside the main reactor core [Selina Physics, Page 133].", c: false }
+            ]
+        },
+        {
+            q: "What is used to circulate the coolant through the reactor and heat exchanger?",
+            options: [
+                { t: "A Turbine", r: "The turbine is for power generation [Selina Physics, Page 133].", c: false },
+                { t: "A Pump", r: "A pump circulates the coolant between the reactor and heat exchanger [Selina Physics, Page 133].", c: true },
+                { t: "Gravity", r: "A pump is required to maintain flow [Selina Physics, Page 133].", c: false },
+                { t: "Steam pressure", r: "Pressure drives the turbine, but the pump moves the coolant [Selina Physics, Page 133].", c: false }
+            ]
+        },
+        {
+            q: "Where is the Rana Pratap Sagar nuclear power plant located?",
+            options: [
+                { t: "Maharashtra", r: "Tarapur is in Maharashtra [Selina Physics, Page 134].", c: false },
+                { t: "Rajasthan", r: "It is located near Kota in Rajasthan [Selina Physics, Page 134].", c: true },
+                { t: "Uttar Pradesh", r: "Narora is in UP [Selina Physics, Page 134].", c: false },
+                { t: "Tamil Nadu", r: "Kalpakkam is in Tamil Nadu [Selina Physics, Page 134].", c: false }
+            ]
+        },
+        {
+            q: "What happens to the water in the heat exchanger during reactor operation?",
+            options: [
+                { t: "It becomes radioactive", r: "The coolant and water systems are separate [Selina Physics, Page 133].", c: false },
+                { t: "It converts into steam", r: "Water in the heat exchanger gets heated and converts into steam [Selina Physics, Page 133].", c: true },
+                { t: "It cools the fuel rods directly", r: "The coolant cools the rods, then water in the exchanger [Selina Physics, Page 133].", c: false },
+                { t: "It freezes", r: "The water is heated, not cooled [Selina Physics, Page 133].", c: false }
+            ]
+        },
+        {
+            q: "Nuclear fission of one Uranium nucleus releases energy equal to nearly:",
+            options: [
+                { t: "200 MeV", r: "Nearly 200 MeV energy is released in a single fission reaction [Selina Physics, Page 129].", c: true },
+                { t: "1.34 kW", r: "This is the solar constant [Selina Physics, Page 127].", c: false },
+                { t: "4.2 J", r: "This is a unit conversion for calories [Selina Physics, Page 119].", c: false },
+                { t: "10²⁵ J", r: "This is not a figure mentioned in the text [Selina Physics, Page 129].", c: false }
+            ]
+        },
+        {
+            q: "Efforts are being made to obtain endless energy from sea water through:",
+            options: [
+                { t: "Controlled Fission", r: "This uses Uranium, not sea water [Selina Physics, Page 133].", c: false },
+                { t: "Controlled Nuclear Fusion", r: "Fusing deuterium nuclei from heavy water in the sea would provide an endless source [Selina Physics, Page 131].", c: true },
+                { t: "Tidal dams", r: "These are limited by geography and scale [Selina Physics, Page 128].", c: false },
+                { t: "OTE power plants", r: "These are restricted by temperature differences [Selina Physics, Page 128].", c: false }
+            ]
+        }
+    ];
+
+    let currentIdx = 0;
+    let answers = new Array(questions.length).fill(null);
+    let flagged = new Array(questions.length).fill(false);
+    let score = 0;
+
+    function initPalette() {
+        const grid = document.getElementById('palette-grid');
+        grid.innerHTML = '';
+        for (let i = 0; i < questions.length; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'palette-btn';
+            btn.innerText = i + 1;
+            btn.id = `palette-btn-${i}`;
+            btn.onclick = () => { currentIdx = i; render(); };
+            grid.appendChild(btn);
+        }
+    }
+
+    function render() {
+        const q = questions[currentIdx];
+        document.getElementById('question').innerText = q.q;
+        const optionsContainer = document.getElementById('options');
+        optionsContainer.innerHTML = '';
+        const rationaleBox = document.getElementById('rationale');
+        rationaleBox.className = 'rationale';
+
+        q.options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt.t;
+            if (answers[currentIdx] !== null) {
+                btn.disabled = true;
+                if (opt.c) btn.classList.add('correct');
+                if (answers[currentIdx] === i && !opt.c) btn.classList.add('wrong');
+                if (answers[currentIdx] === i) {
+                    rationaleBox.innerText = opt.r;
+                    rationaleBox.classList.add('visible');
+                }
+            } else {
+                btn.onclick = () => selectOption(i);
+            }
+            optionsContainer.appendChild(btn);
+        });
+        document.getElementById('nextBtn').innerText = currentIdx === questions.length - 1 ? 'Finish Test' : 'Next →';
+        updatePalette();
+    }
+
+    function selectOption(idx) {
+        answers[currentIdx] = idx;
+        if (questions[currentIdx].options[idx].c) score++;
+        render();
+    }
+
+    function toggleFlag() {
+        flagged[currentIdx] = !flagged[currentIdx];
+        updatePalette();
+    }
+
+    function updatePalette() {
+        for (let i = 0; i < questions.length; i++) {
+            const btn = document.getElementById(`palette-btn-${i}`);
+            btn.className = 'palette-btn';
+            if (i === currentIdx) btn.classList.add('current');
+            if (answers[i] !== null) btn.classList.add('answered');
+            if (flagged[i]) btn.classList.add('flagged');
+        }
+    }
+
+    function changeQuestion(step) {
+        if (step === 1 && currentIdx === questions.length - 1) {
+            showResults();
+            return;
+        }
+        currentIdx = (currentIdx + step + questions.length) % questions.length;
+        render();
+    }
+
+    function showResults() {
+        document.getElementById('quiz-app').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        document.getElementById('final-score').innerText = `${score}/20`;
+        const feedback = document.getElementById('feedback');
+        if (score === 20) feedback.innerText = "Excellent! You have perfect mastery of Section 6.16.";
+        else if (score >= 15) feedback.innerText = "Very good. You understand the working principles of a Nuclear Power Plant.";
+        else feedback.innerText = "Study recommendation: Review the diagram of the nuclear power plant in Fig 6.12.";
+    }
+
+    initPalette();
+    render();
+</script>
+</body>
+</html>
