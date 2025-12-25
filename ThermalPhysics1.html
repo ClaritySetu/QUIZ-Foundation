@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClaritySetu Physics: Thermal Expansion Assessment</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-bg: #0f172a;
+            --secondary-bg: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-color: #3b82f6;
+            --success-color: #22c55e;
+            --error-color: #ef4444;
+            --flag-color: #f59e0b;
+            --selection-white: #ffffff;
+            --palette-unvisited: #334155;
+            --palette-answered: #059669;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-primary);
+            margin: 0; padding: 20px;
+            display: flex; justify-content: center; min-height: 100vh;
+        }
+
+        .main-wrapper {
+            display: flex; gap: 30px; width: 100%; max-width: 1200px;
+            align-items: flex-start;
+        }
+
+        /* --- BRANDING HEADER --- */
+        .brand-header {
+            margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid #334155;
+        }
+        .brand-name { font-size: 1.6rem; font-weight: 800; color: var(--accent-color); margin: 0; letter-spacing: 0.5px; }
+        .topic-subtext { font-size: 1.1rem; color: var(--text-secondary); font-weight: 400; }
+
+        /* --- TOOLTIPS --- */
+        .mode-container { position: relative; display: inline-block; }
+        .tooltip {
+            visibility: hidden; width: 280px; background-color: #0f172a; color: #fff;
+            text-align: left; border-radius: 8px; padding: 15px; position: absolute;
+            z-index: 10; bottom: 125%; left: 50%; transform: translateX(-50%);
+            opacity: 0; transition: opacity 0.3s; border: 1px solid var(--accent-color);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4); font-size: 0.9rem; pointer-events: none;
+        }
+        .mode-container:hover .tooltip { visibility: visible; opacity: 1; }
+
+        /* --- SIDE PALETTE --- */
+        #side-palette {
+            display: none; flex: 0 0 150px; background-color: var(--secondary-bg);
+            padding: 15px; border-radius: 15px; border: 1px solid #334155;
+            position: sticky; top: 20px; text-align: center;
+            min-height: 450px; flex-direction: column;
+        }
+
+        .palette-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 8px; margin-top: 15px; flex-grow: 1;
+        }
+
+        .palette-item {
+            aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+            background-color: var(--palette-unvisited); border: 2px solid transparent;
+            border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem; transition: 0.2s;
+        }
+
+        .palette-item.current { border-color: var(--accent-color); background-color: #475569; }
+        .palette-item.answered { background-color: var(--palette-answered); color: white; }
+        .palette-item.flagged { background-color: var(--flag-color) !important; color: white; }
+
+        .submit-area { margin-top: 30px; padding-top: 15px; border-top: 1px solid #334155; }
+        .submit-btn-side {
+            width: 100%; padding: 12px; background: linear-gradient(135deg, var(--error-color), #b91c1c);
+            color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
+        }
+
+        /* --- MAIN CONTAINER --- */
+        .container {
+            flex: 1; background-color: var(--secondary-bg);
+            padding: 40px; border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6); border: 1px solid #334155;
+        }
+
+        .question-text { font-size: 1.4rem; line-height: 1.6; margin-bottom: 30px; }
+
+        .option-btn {
+            display: block; width: 100%; padding: 18px; margin-bottom: 12px;
+            background-color: #2b394e; color: var(--text-primary);
+            border: 2px solid #475569; border-radius: 12px;
+            text-align: left; cursor: pointer; transition: all 0.3s ease; 
+            font-size: 1.1rem;
+        }
+
+        .option-btn:hover:not([disabled]):not(.selected) { transform: translateX(8px); border-color: var(--accent-color); }
+
+        .option-btn.selected {
+            background-color: #1e293b; border: 3px solid var(--selection-white) !important;
+            color: var(--selection-white); font-weight: bold;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+
+        .footer-nav {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 40px; padding-top: 20px; border-top: 1px solid #334155;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, var(--accent-color), #2563eb);
+            color: white; border: none; border-radius: 10px; padding: 14px 28px;
+            font-weight: bold; cursor: pointer;
+        }
+
+        #result-area { display: none; text-align: center; }
+        .score-big { font-size: 5rem; font-weight: 800; color: var(--success-color); margin: 0; }
+        
+        .review-card {
+            text-align: left; background: #0f172a; padding: 20px; 
+            border-radius: 12px; margin-bottom: 15px; border-left: 5px solid #334155;
+        }
+        .review-card.correct { border-left-color: var(--success-color); }
+        .review-card.wrong { border-left-color: var(--error-color); }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div id="side-palette">
+        <h4 style="margin:0; font-size: 0.7rem; color: var(--text-secondary); letter-spacing: 1px;">NAVIGATOR</h4>
+        <div class="palette-grid" id="palette-grid"></div>
+        <div class="submit-area">
+            <button class="submit-btn-side" onclick="confirmFinish()">SUBMIT EXAM</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="brand-header" id="quiz-header" style="display:none;">
+            <h1 class="brand-name">ClaritySetu Physics <span class="topic-subtext">| Topic: Thermal Expansion</span></h1>
+        </div>
+
+        <div id="intro-screen" style="text-align:center;">
+            <h1 style="font-size: 3rem; margin-bottom: 10px; color: var(--accent-color);">ClaritySetu Physics</h1>
+            <h2>Thermal Expansion of Matter</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 40px;">Class 9 ICSE Physics • 20 MCQs Assessment</p>
+            
+            <div style="background: rgba(255,255,255,0.05); padding: 40px; border-radius: 20px; display: inline-block;">
+                <h3 style="margin-top: 0; margin-bottom: 25px;">Choose Your Environment</h3>
+                <div style="display: flex; gap: 20px; justify-content: center;">
+                    <div class="mode-container">
+                        <button class="nav-btn" onclick="startQuiz('end')">Exam Mode</button>
+                        <span class="tooltip">Simulates a real test. Results and correct answers revealed only after submission.</span>
+                    </div>
+                    <div class="mode-container">
+                        <button class="nav-btn" style="background:#475569;" onclick="startQuiz('instant')">Practice Mode</button>
+                        <span class="tooltip">Learning-focused. The correct answer is revealed immediately after each selection.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="quiz-area" style="display:none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 id="q-title" style="color: var(--accent-color); margin:0;">Question 1 / 20</h3>
+                <button id="flag-btn" style="background:transparent; border:1px solid var(--flag-color); color:var(--flag-color); padding:5px 15px; border-radius:5px; cursor:pointer;" onclick="toggleFlag()">🚩 Flag</button>
+            </div>
+            <div class="question-text" id="question-text">Loading...</div>
+            <div id="options-container"></div>
+            <div class="footer-nav">
+                <button class="nav-btn" style="background: #475569" onclick="prevQuestion()">← Back</button>
+                <button class="nav-btn" onclick="nextQuestion()">Next Question →</button>
+            </div>
+        </div>
+
+        <div id="result-area">
+            <h1 class="brand-name" style="margin-bottom: 20px;">Assessment Result</h1>
+            <div style="font-size: 2rem; color: var(--text-secondary);" id="final-percent">0% Score</div>
+            <div class="score-big" id="final-score">0 / 20</div>
+            <div id="review-list" style="max-height: 400px; overflow-y: auto; margin-top: 30px; border-top: 1px solid #334155; padding-top: 20px;"></div>
+            <button class="nav-btn" style="width:100%; background: var(--success-color); margin-top:20px;" onclick="generatePDF()">📄 Download Full Report</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { q: "On heating a solid, the increase in its length is called:", options: ["Superficial expansion", "Cubical expansion", "Linear expansion", "Volumetric expansion"], correct: 2 },
+        { q: "The ratio of superficial expansion to linear expansion (β/α) for a solid is:", options: ["1", "2", "3", "4"], correct: 1 },
+        { q: "Water has maximum density at:", options: ["0°C", "100°C", "4°C", "10°C"], correct: 2 },
+        { q: "A bimetallic strip made of copper and iron bends on heating because:", options: ["Iron expands more than copper", "Copper expands more than iron", "Both expand equally", "Neither expands"], correct: 1 },
+        { q: "When water is heated from 0°C to 4°C, its volume:", options: ["Increases", "Decreases", "Remains constant", "First increases then decreases"], correct: 1 },
+        { q: "Gaps are left between railway tracks to allow for:", options: ["Vibration", "Contraction in winter", "Expansion in summer", "Easy repairs"], correct: 2 },
+        { q: "The S.I. unit of the coefficient of linear expansion is:", options: ["°C", "K", "°C⁻¹ or K⁻¹", "m/°C"], correct: 2 },
+        { q: "For a given rise in temperature, which of the following expands the most?", options: ["Solids", "Liquids", "Gases", "All expand equally"], correct: 2 },
+        { q: "Anomalous expansion of water is beneficial for:", options: ["Railway tracks", "Aquatic life in cold regions", "Bimetallic strips", "Clinical thermometers"], correct: 1 },
+        { q: "The relationship between α, β, and γ is:", options: ["α = β = γ", "α = 2β = 3γ", "γ = 3α and β = 2α", "α = 3γ"], correct: 2 },
+        { q: "A metal ring is heated. The diameter of the hole in the ring will:", options: ["Increase", "Decrease", "Remain the same", "Depends on the metal"], correct: 0 },
+        { q: "The real expansion of a liquid is equal to:", options: ["Apparent expansion - Expansion of vessel", "Apparent expansion + Expansion of vessel", "Only Apparent expansion", "Expansion of vessel only"], correct: 1 },
+        { q: "Pyrex glass is used for lab apparatus because it has a:", options: ["High melting point", "Low coefficient of expansion", "High conductivity", "Large density"], correct: 1 },
+        { q: "In cold countries, water pipes burst in winter because:", options: ["Ice contracts on freezing", "Water expands on freezing", "The metal pipe contracts", "Water pressure increases"], correct: 1 },
+        { q: "The increase in volume per unit original volume per degree rise in temperature is:", options: ["α", "β", "γ", "δ"], correct: 2 },
+        { q: "Which property of liquids is used in a liquid-in-glass thermometer?", options: ["Anomalous expansion", "Uniform thermal expansion", "Vaporization", "High density"], correct: 1 },
+        { q: "To fit an iron rim on a wooden wheel, the rim is made slightly smaller than the wheel and then heated. This works because heating causes the rim's:", options: ["Mass to increase", "Density to increase", "Circumference to increase", "Melting to begin"], correct: 2 },
+        { q: "A glass stopper stuck in a bottle neck can often be removed by pouring hot water on:", options: ["The stopper", "The bottle neck", "The bottom of bottle", "Both neck and stopper"], correct: 1 },
+        { q: "Compared to solids, liquids have:", options: ["Only cubical expansion", "Only linear expansion", "Superficial expansion", "No expansion"], correct: 0 },
+        { q: "To join two steel plates tightly, a red-hot rivet is driven through the holes and hammered. On cooling, the joint becomes tighter because the rivet:", options: ["Expands and fills the hole", "Contracts and pulls the plates together", "Melts and fuses with the plates", "Becomes more flexible"], correct: 1 },
+    ];
+
+    let currentIdx = 0;
+    let quizMode = '';
+    let userAnswers = Array(quizData.length).fill(null);
+    let flaggedItems = Array(quizData.length).fill(false);
+
+    function startQuiz(mode) {
+        quizMode = mode;
+        document.getElementById('intro-screen').style.display = 'none';
+        document.getElementById('quiz-header').style.display = 'block';
+        document.getElementById('quiz-area').style.display = 'block';
+        document.getElementById('side-palette').style.display = 'flex';
+        initPalette();
+        loadQuestion();
+    }
+
+    function initPalette() {
+        const grid = document.getElementById('palette-grid');
+        grid.innerHTML = '';
+        quizData.forEach((_, i) => {
+            const item = document.createElement('div');
+            item.className = 'palette-item';
+            item.id = `pal-${i}`;
+            item.innerText = i + 1;
+            item.onclick = () => jumpTo(i);
+            grid.appendChild(item);
+        });
+    }
+
+    function loadQuestion() {
+        const data = quizData[currentIdx];
+        document.getElementById('q-title').innerText = `Question ${currentIdx + 1} / 20`;
+        document.getElementById('question-text').innerText = data.q;
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+        data.options.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = `${String.fromCharCode(65+i)}. ${opt}`;
+            if (userAnswers[currentIdx] === i) btn.classList.add('selected');
+            if (quizMode === 'instant' && userAnswers[currentIdx] !== null) {
+                if (i === data.correct) btn.style.borderColor = "var(--success-color)";
+                else if (i === userAnswers[currentIdx]) btn.style.borderColor = "var(--error-color)";
+                btn.disabled = true;
+            }
+            btn.onclick = () => selectOption(i, btn);
+            container.appendChild(btn);
+        });
+        updatePaletteVisuals();
+    }
+
+    function selectOption(idx, btn) {
+        if (quizMode === 'instant' && userAnswers[currentIdx] !== null) return;
+        userAnswers[currentIdx] = idx;
+        if (quizMode === 'instant') {
+            const correct = quizData[currentIdx].correct;
+            if (idx === correct) btn.style.borderColor = "var(--success-color)";
+            else { btn.style.borderColor = "var(--error-color)"; document.querySelectorAll('.option-btn')[correct].style.borderColor = "var(--success-color)"; }
+            document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+        } else {
+            document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+        updatePaletteVisuals();
+    }
+
+    function toggleFlag() { flaggedItems[currentIdx] = !flaggedItems[currentIdx]; updatePaletteVisuals(); }
+    function nextQuestion() { if (currentIdx < quizData.length - 1) { currentIdx++; loadQuestion(); } }
+    function prevQuestion() { if (currentIdx > 0) { currentIdx--; loadQuestion(); } }
+    function jumpTo(i) { currentIdx = i; loadQuestion(); }
+
+    function updatePaletteVisuals() {
+        quizData.forEach((_, i) => {
+            const el = document.getElementById(`pal-${i}`);
+            if (!el) return;
+            el.className = 'palette-item';
+            if (i === currentIdx) el.classList.add('current');
+            if (userAnswers[i] !== null) el.classList.add('answered');
+            if (flaggedItems[i]) el.classList.add('flagged');
+        });
+    }
+
+    function confirmFinish() {
+        const unanswered = userAnswers.filter(a => a === null).length;
+        if (confirm(`You have ${unanswered} unanswered questions. Submit entire exam now?`)) showResults();
+    }
+
+    function showResults() {
+        document.getElementById('quiz-area').style.display = 'none';
+        document.getElementById('side-palette').style.display = 'none';
+        document.getElementById('quiz-header').style.display = 'none';
+        document.getElementById('result-area').style.display = 'block';
+        
+        let score = 0;
+        const list = document.getElementById('review-list');
+        list.innerHTML = '';
+
+        quizData.forEach((data, i) => {
+            const isCorrect = userAnswers[i] === data.correct;
+            if (isCorrect) score++;
+            list.innerHTML += `
+                <div class="review-card ${isCorrect ? 'correct' : 'wrong'}">
+                    <strong>Q${i+1}: ${data.q}</strong><br>
+                    <span style="color:${isCorrect ? '#22c55e' : '#ef4444'}">Your Choice: ${userAnswers[i] !== null ? data.options[userAnswers[i]] : 'Skipped'}</span><br>
+                    <span style="color:#94a3b8">Correct Answer: ${data.options[data.correct]}</span>
+                </div>
+            `;
+        });
+        const percent = Math.round((score / quizData.length) * 100);
+        document.getElementById('final-percent').innerText = percent + "% Score";
+        document.getElementById('final-score').innerText = `${score} / ${quizData.length} Correct`;
+    }
+
+    function generatePDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(22);
+        doc.setTextColor(59, 130, 246);
+        doc.text("ClaritySetu Physics Assessment", 10, 20);
+        const score = userAnswers.filter((a, i) => a === quizData[i].correct).length;
+        const percent = Math.round((score / quizData.length) * 100);
+        doc.setFontSize(14);
+        doc.setTextColor(0,0,0);
+        doc.text(`Topic: Thermal Expansion`, 10, 32);
+        doc.text(`Final Score: ${score} / ${quizData.length} (${percent}%)`, 10, 40);
+        let y = 55;
+        quizData.forEach((data, i) => {
+            if (y > 260) { doc.addPage(); y = 20; }
+            doc.setFont("helvetica", "bold");
+            doc.text(`${i+1}. ${data.q}`, 10, y);
+            y += 7;
+            doc.setFont("helvetica", "normal");
+            doc.text(`   Your Answer: ${userAnswers[i] !== null ? data.options[userAnswers[i]] : 'Skipped'}`, 10, y);
+            y += 5;
+            doc.text(`   Correct Answer: ${data.options[data.correct]}`, 10, y);
+            y += 12;
+        });
+        doc.save("ClaritySetu_ThermalExpansion_Report.pdf");
+    }
+</script>
+</body>
+</html>
